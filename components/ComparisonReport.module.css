@@ -1,0 +1,93 @@
+.wrap {
+  width: 100%;
+  max-width: 2400px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 12px 14px;
+  margin-top: 12px;
+}
+
+.title {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #6a6455;
+  margin-bottom: 10px;
+}
+
+.statsGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+
+.statCell {
+  background: var(--panel);
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.statCell .val {
+  font-size: 18px;
+  color: var(--brass-glow);
+  font-family: var(--serif);
+}
+
+.statCell .lbl {
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #6a6455;
+  margin-top: 2px;
+}
+
+.rows {
+  max-height: 280px;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  padding: 3px 0;
+}
+
+.rowType {
+  width: 56px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6a6455;
+  font-size: 9px;
+}
+
+.rowExpected {
+  width: 150px;
+  flex-shrink: 0;
+}
+
+.clean {
+  font-size: 11px;
+  color: #4a4432;
+  padding: 12px;
+  text-align: center;
+}
+
+.empty {
+  width: 100%;
+  max-width: 2400px;
+  font-size: 11px;
+  color: #4a4432;
+  padding: 20px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  margin-top: 12px;
+}

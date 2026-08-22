@@ -1,0 +1,65 @@
+.wrap {
+  width: 100%;
+  max-width: 2400px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 10px;
+  margin-top: 20px;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--ivory-dim);
+  margin-bottom: 8px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.swatchRef {
+  composes: swatch;
+  background: var(--info);
+}
+
+.swatchTake {
+  composes: swatch;
+  background: var(--brass-glow);
+}
+
+.swatchIssue {
+  composes: swatch;
+  background: transparent;
+  border: 1.5px solid var(--danger);
+}
+
+.svgWrap {
+  width: 100%;
+  overflow-x: auto;
+  background: #14100d;
+  border: 1px solid var(--line);
+}
+
+.empty {
+  width: 100%;
+  max-width: 2400px;
+  font-size: 11px;
+  color: #4a4432;
+  padding: 20px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  margin-top: 20px;
+}

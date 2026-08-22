@@ -1,0 +1,99 @@
+.card {
+  width: 100%;
+  max-width: 920px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 12px 14px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #6a6455;
+  margin-bottom: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.title:hover {
+  color: var(--ivory-dim);
+}
+
+.disclosure {
+  display: inline-block;
+  width: 10px;
+  font-size: 9px;
+}
+
+.titleCount {
+  color: #4a4432;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 10px;
+}
+
+.channelList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.channelRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ivory-dim);
+  padding: 2px 0;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.playBtn {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--brass);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.playBtn:hover:not(:disabled) {
+  border-color: var(--brass);
+}
+
+.playBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.speedLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ivory-dim);
+}
+
+.outputHint {
+  font-size: 10px;
+  color: #6a6455;
+}

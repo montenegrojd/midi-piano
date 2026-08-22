@@ -1,0 +1,41 @@
+.wrap {
+  width: 100%;
+  max-width: 2400px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 10px;
+  margin-top: 12px;
+}
+
+.title {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #6a6455;
+  margin-bottom: 8px;
+}
+
+.hint {
+  text-transform: none;
+  letter-spacing: normal;
+  color: #4a4432;
+}
+
+.svgWrap {
+  width: 100%;
+  overflow-x: auto;
+  background: #14100d;
+  border: 1px solid var(--line);
+}
+
+.empty {
+  width: 100%;
+  max-width: 2400px;
+  font-size: 11px;
+  color: #4a4432;
+  padding: 20px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  margin-top: 12px;
+}

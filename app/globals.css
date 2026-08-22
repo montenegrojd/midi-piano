@@ -1,0 +1,48 @@
+:root {
+  --bg: #17140f;
+  --panel: #1f1b14;
+  --ivory: #f2ead9;
+  --ivory-dim: #cfc4ab;
+  --ebony: #0d0b08;
+  --ebony-dim: #2a2620;
+  --brass: #c9922f;
+  --brass-glow: #ffb648;
+  --line: #35301f;
+  --danger: #c9502f;
+  --info: #8ca0ff;
+  --mono: "SF Mono", "Cascadia Code", Consolas, monospace;
+  --serif: Georgia, "Times New Roman", serif;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: radial-gradient(ellipse at 50% -10%, #241f16 0%, var(--bg) 55%);
+  color: var(--ivory);
+  font-family: var(--mono);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px 56px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+select,
+input,
+button {
+  font-family: var(--mono);
+}

@@ -1,0 +1,89 @@
+"use client";
+
+import { useState, type MouseEvent } from "react";
+import type { Take } from "@/lib/types";
+import styles from "./TakeCard.module.css";
+
+interface TakeCardProps {
+  take: Take;
+  onDelete: (takeId: string) => void;
+  deleting?: boolean;
+  selected?: boolean;
+  onSelect: (takeId: string) => void;
+  onPlay: (take: Take) => void;
+  onStopPlayback: () => void;
+  isPlaying?: boolean;
+  playDisabled?: boolean;
+  accuracyPct?: number;
+}
+
+export default function TakeCard({ take, onDelete, deleting, selected, onSelect, onPlay, onStopPlayback, isPlaying, playDisabled, accuracyPct }: TakeCardProps) {
+  const { stats } = take;
+  const [confirming, setConfirming] = useState(false);
+
+  function stopBubble(e: MouseEvent) {
+    e.stopPropagation();
+  }
+
+  return (
+    <div className={`${styles.card} ${selected ? styles.selected : ""}`} onClick={() => onSelect(take.id)}>
+      <div className={styles.header}>
+        <span className={styles.dateHeading}>{new Date(take.recordedAt).toLocaleString()}</span>
+        <div className={styles.headerRight} onClick={stopBubble}>
+          <button
+            className={`${styles.playBtn} ${isPlaying ? styles.playing : ""}`}
+            onClick={() => (isPlaying ? onStopPlayback() : onPlay(take))}
+            disabled={!isPlaying && playDisabled}
+          >
+            {isPlaying ? "■ stop" : "▶ play"}
+          </button>
+          {confirming ? (
+            <span className={styles.confirmRow}>
+              Delete?
+              <button className={styles.confirmYes} onClick={() => onDelete(take.id)} disabled={deleting}>
+                {deleting ? "…" : "Yes"}
+              </button>
+              <button className={styles.confirmNo} onClick={() => setConfirming(false)} disabled={deleting}>
+                No
+              </button>
+            </span>
+          ) : (
+            <button className={styles.deleteBtn} onClick={() => setConfirming(true)}>
+              delete
+            </button>
+          )}
+        </div>
+      </div>
+      <div className={styles.statsGrid}>
+        <div className={styles.statCell}>
+          <div className={styles.val}>{stats.noteCount}</div>
+          <div className={styles.lbl}>Notes played</div>
+        </div>
+        <div className={styles.statCell}>
+          <div className={styles.val}>{accuracyPct !== undefined ? `${accuracyPct}%` : "—"}</div>
+          <div className={styles.lbl}>Accuracy</div>
+        </div>
+        <div className={styles.statCell}>
+          <div className={styles.val}>{stats.totalDuration}s</div>
+          <div className={styles.lbl}>Take length</div>
+        </div>
+        <div className={styles.statCell}>
+          <div className={styles.val}>~{stats.approxBPM}</div>
+          <div className={styles.lbl}>Notes / min</div>
+        </div>
+        <div className={styles.statCell}>
+          <div className={styles.val}>{stats.consistencyPct}%</div>
+          <div className={styles.lbl}>Timing consistency</div>
+        </div>
+        <div className={styles.statCell}>
+          <div className={styles.val}>{stats.avgVelocity}</div>
+          <div className={styles.lbl}>Avg velocity (0–127)</div>
+        </div>
+        <div className={styles.statCell}>
+          <div className={styles.val}>{stats.avgDuration}ms</div>
+          <div className={styles.lbl}>Avg note hold</div>
+        </div>
+      </div>
+    </div>
+  );
+}
