@@ -48,6 +48,16 @@
   pointer-events: none;
 }
 
+.playDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5fbf6a;
+  box-shadow: 0 0 5px rgba(95, 191, 106, 0.8);
+  margin-bottom: 8px;
+  pointer-events: none;
+}
+
 .black {
   width: 16px;
   height: 116px;

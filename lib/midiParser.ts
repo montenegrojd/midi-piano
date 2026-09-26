@@ -7,8 +7,21 @@ export interface ParsedChannel {
 
 export type ParsedMidi = Record<number, ParsedChannel>; // key = 0-indexed MIDI channel
 
+export interface GridBeat {
+  ms: number;
+  bar: number; // 1-based measure number
+  beatInBar: number; // 1-based; 1 is the downbeat
+}
+
+export interface ParsedMidiFile {
+  channels: ParsedMidi;
+  beats: GridBeat[]; // every beat from tick 0 through the last note, for drawing bar lines and beat ticks
+  timeSignature: { numerator: number; denominator: number };
+}
+
 type RawEvent =
   | { tick: number; type: "tempo"; usPerQuarter: number }
+  | { tick: number; type: "timeSig"; numerator: number; denominator: number }
   | { tick: number; type: "program"; channel: number; program: number }
   | { tick: number; type: "noteOn"; note: number; velocity: number; channel: number }
   | { tick: number; type: "noteOff"; note: number; channel: number };
@@ -19,6 +32,10 @@ type RawEvent =
  * it only touches the ArrayBuffer, no DOM.
  */
 export function parseMidiFile(arrayBuffer: ArrayBuffer): ParsedMidi {
+  return parseMidiFileWithGrid(arrayBuffer).channels;
+}
+
+export function parseMidiFileWithGrid(arrayBuffer: ArrayBuffer): ParsedMidiFile {
   const view = new DataView(arrayBuffer);
   let pos = 0;
   const readUint32 = () => {
@@ -81,6 +98,11 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer): ParsedMidi {
         if (metaType === 0x51 && len === 3) {
           const usPerQuarter = (readUint8() << 16) | (readUint8() << 8) | readUint8();
           allEvents.push({ tick: absTick, type: "tempo", usPerQuarter });
+        } else if (metaType === 0x58 && len >= 2) {
+          const numerator = readUint8();
+          const denominator = 2 ** readUint8();
+          pos += len - 2;
+          allEvents.push({ tick: absTick, type: "timeSig", numerator, denominator });
         } else {
           pos += len;
         }
@@ -127,7 +149,9 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer): ParsedMidi {
   const openNotes: Record<string, { onTime: number; velocity: number }[]> = {};
   const programByChannel: Record<number, number> = {};
   const channels: ParsedMidi = {};
+  let lastTick = 0;
   allEvents.forEach((e) => {
+    if (e.type === "noteOff") lastTick = Math.max(lastTick, e.tick);
     if (e.type === "program") {
       programByChannel[e.channel] = e.program;
     } else if (e.type === "noteOn") {
@@ -145,7 +169,25 @@ export function parseMidiFile(arrayBuffer: ArrayBuffer): ParsedMidi {
     }
   });
   Object.values(channels).forEach((c) => c.notes.sort((a, b) => a.onTime - b.onTime));
-  return channels;
+
+  // Beat grid from the time-signature map (default 4/4). A beat is one denominator-note; each new
+  // signature restarts the measure count's beat position at its own tick.
+  const sigChanges = allEvents.filter((e): e is Extract<RawEvent, { type: "timeSig" }> => e.type === "timeSig");
+  if (sigChanges.length === 0 || sigChanges[0].tick > 0) sigChanges.unshift({ tick: 0, type: "timeSig", numerator: 4, denominator: 4 });
+  const beats: GridBeat[] = [];
+  let bar = 0;
+  sigChanges.forEach((sig, idx) => {
+    const segmentEnd = idx + 1 < sigChanges.length ? sigChanges[idx + 1].tick : lastTick + 1;
+    const beatTicks = (ticksPerQuarter * 4) / sig.denominator;
+    let beatInBar = 0;
+    for (let tick = sig.tick; tick < segmentEnd; tick += beatTicks) {
+      if (beatInBar === 0) bar++;
+      beats.push({ ms: tickToMs(tick), bar, beatInBar: beatInBar + 1 });
+      beatInBar = (beatInBar + 1) % sig.numerator;
+    }
+  });
+
+  return { channels, beats, timeSignature: { numerator: sigChanges[0].numerator, denominator: sigChanges[0].denominator } };
 }
 
 export function summarizeParsedMidi(channels: ParsedMidi) {

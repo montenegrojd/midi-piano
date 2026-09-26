@@ -158,7 +158,11 @@ export function compareTakeToReference(referenceEvents: NoteEvent[], takeEvents:
   const repeat = count("repeat");
   const effectiveRefCount = refChords.length - repeat;
   const accuracySum = steps.reduce((a, s) => a + (s.ref && s.played ? chordSimilarity(s.ref, s.played) : 0), 0);
-  const accuracyPct = effectiveRefCount ? Math.round((accuracySum / effectiveRefCount) * 100) : 0;
+  // Extra chords (played but not in the reference) inflate the denominator without adding to the
+  // sum, so accuracy reflects both recall (did you play everything asked for) and precision (did
+  // you avoid playing things that weren't) rather than recall alone.
+  const accuracyDenominator = effectiveRefCount + extra;
+  const accuracyPct = accuracyDenominator ? Math.round((accuracySum / accuracyDenominator) * 100) : 0;
 
   return { accuracyPct, matched, partial, wrong, missed, extra, repeat, refChordCount: refChords.length, effectiveRefCount, steps };
 }

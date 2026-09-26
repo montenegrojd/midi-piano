@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { parseMidiFile, summarizeParsedMidi, type ParsedMidi } from "./midiParser";
+import { parseMidiFileWithGrid, summarizeParsedMidi, type ParsedMidiFile } from "./midiParser";
 import type { Piece, PieceSummary, Take } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -48,13 +48,13 @@ async function uniqueSlug(name: string): Promise<string> {
 
 export class MidiFileNotFoundError extends Error {}
 
-async function parseLibraryFile(filename: string): Promise<ParsedMidi> {
+async function parseLibraryFile(filename: string): Promise<ParsedMidiFile> {
   const bytes = await fs.readFile(path.join(MIDI_LIBRARY_DIR, filename));
   const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-  return parseMidiFile(arrayBuffer); // throws if the file isn't a valid SMF
+  return parseMidiFileWithGrid(arrayBuffer); // throws if the file isn't a valid SMF
 }
 
-export async function getReferenceMidi(filename: string): Promise<ParsedMidi> {
+export async function getReferenceMidi(filename: string): Promise<ParsedMidiFile> {
   return parseLibraryFile(filename);
 }
 
@@ -68,7 +68,7 @@ export async function createPiece(name: string, referenceMidiFilename: string): 
   }
 
   const parsed = await parseLibraryFile(referenceMidiFilename);
-  const summary = summarizeParsedMidi(parsed);
+  const summary = summarizeParsedMidi(parsed.channels);
 
   const slug = await uniqueSlug(trimmedName);
   const piece: Piece = {
@@ -149,5 +149,11 @@ export async function deleteTake(slug: string, takeId: string): Promise<boolean>
   const next = takes.filter((t) => t.id !== takeId);
   if (next.length === takes.length) return false; // nothing matched that id
   await fs.writeFile(path.join(PIECES_DIR, slug, "takes.json"), JSON.stringify(next, null, 2));
+  return true;
+}
+
+export async function deletePiece(slug: string): Promise<boolean> {
+  if (!/^[a-z0-9-]+$/.test(slug) || !(await pieceDirExists(slug))) return false; // slug check keeps this from ever touching a path outside data/pieces
+  await fs.rm(path.join(PIECES_DIR, slug), { recursive: true }); // removes piece.json and takes.json; the shared MIDI library is untouched
   return true;
 }

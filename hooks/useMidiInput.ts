@@ -1,31 +1,35 @@
 import { useEffect, useRef, useState } from "react";
-import { RECORD_TOGGLE_NOTE } from "@/lib/constants";
+import { PLAY_REFERENCE_NOTE, RECORD_TOGGLE_NOTE } from "@/lib/constants";
 
 interface UseMidiInputOptions {
   onNoteOn: (note: number, velocity: number) => void;
   onNoteOff: (note: number) => void;
   onSustain: (down: boolean) => void;
   onToggleRecording: () => void;
+  onTogglePlayReference: () => void;
 }
 
 /**
  * Wires all input sources (real MIDI device, on-screen key clicks, and A0 as a hands-free record
- * toggle) into a piano note/sustain/recording controller — ported from the POC's Web MIDI section
+ * toggle, B1 as a hands-free play/stop for the reference) into a piano note/sustain/recording controller — ported from the POC's Web MIDI section
  * (midi-keyboard-poc.html). Sustain only comes from a real pedal (MIDI CC 64) now.
  */
-export function useMidiInput({ onNoteOn, onNoteOff, onSustain, onToggleRecording }: UseMidiInputOptions) {
+export function useMidiInput({ onNoteOn, onNoteOff, onSustain, onToggleRecording, onTogglePlayReference }: UseMidiInputOptions) {
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [midiSupported, setMidiSupported] = useState(true);
 
   // Always-fresh callbacks for the event handler below, which is attached once outside React's render cycle.
-  const cbRef = useRef({ onNoteOn, onNoteOff, onSustain, onToggleRecording });
-  cbRef.current = { onNoteOn, onNoteOff, onSustain, onToggleRecording };
+  const cbRef = useRef({ onNoteOn, onNoteOff, onSustain, onToggleRecording, onTogglePlayReference });
+  cbRef.current = { onNoteOn, onNoteOff, onSustain, onToggleRecording, onTogglePlayReference };
 
-  const tryToggleRecording = (note: number) => {
-    if (note !== RECORD_TOGGLE_NOTE) return false;
-    cbRef.current.onToggleRecording();
+  // A0 and B1 are control keys: they trigger an action instead of being played/recorded as notes.
+  const tryControlKey = (note: number) => {
+    if (note === RECORD_TOGGLE_NOTE) cbRef.current.onToggleRecording();
+    else if (note === PLAY_REFERENCE_NOTE) cbRef.current.onTogglePlayReference();
+    else return false;
     return true;
   };
+  const isControlKey = (note: number) => note === RECORD_TOGGLE_NOTE || note === PLAY_REFERENCE_NOTE;
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.requestMIDIAccess) {
@@ -40,9 +44,9 @@ export function useMidiInput({ onNoteOn, onNoteOff, onSustain, onToggleRecording
       const [status, d1, d2 = 0] = data;
       const cmd = status & 0xf0;
       if (cmd === 0x90 && d2 > 0) {
-        if (!tryToggleRecording(d1)) cbRef.current.onNoteOn(d1, d2);
+        if (!tryControlKey(d1)) cbRef.current.onNoteOn(d1, d2);
       } else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) {
-        if (d1 !== RECORD_TOGGLE_NOTE) cbRef.current.onNoteOff(d1);
+        if (!isControlKey(d1)) cbRef.current.onNoteOff(d1);
       } else if (cmd === 0xb0 && d1 === 64) {
         cbRef.current.onSustain(d2 >= 64);
       }
@@ -74,9 +78,11 @@ export function useMidiInput({ onNoteOn, onNoteOff, onSustain, onToggleRecording
   }, []);
 
   const pressVirtualKey = (note: number) => {
-    if (!tryToggleRecording(note)) cbRef.current.onNoteOn(note, 100);
+    if (!tryControlKey(note)) cbRef.current.onNoteOn(note, 100);
   };
-  const releaseVirtualKey = (note: number) => cbRef.current.onNoteOff(note);
+  const releaseVirtualKey = (note: number) => {
+    if (!isControlKey(note)) cbRef.current.onNoteOff(note);
+  };
 
   return { deviceName, midiSupported, pressVirtualKey, releaseVirtualKey };
 }

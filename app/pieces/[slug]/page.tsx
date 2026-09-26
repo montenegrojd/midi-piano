@@ -7,6 +7,6 @@ export default async function PiecePage({ params }: { params: Promise<{ slug: st
   const piece = await getPiece(slug);
   if (!piece) notFound();
 
-  const [takes, referenceChannels] = await Promise.all([getTakes(slug), getReferenceMidi(piece.referenceMidiFilename)]);
-  return <PieceWorkspace piece={piece} takes={takes} referenceChannels={referenceChannels} />;
+  const [takes, reference] = await Promise.all([getTakes(slug), getReferenceMidi(piece.referenceMidiFilename)]);
+  return <PieceWorkspace piece={piece} takes={takes} referenceChannels={reference.channels} beats={reference.beats} />;
 }

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ParsedMidi } from "@/lib/midiParser";
 import { channelInstrumentName } from "@/lib/gmInstruments";
+import PlaybackProgress from "./PlaybackProgress";
 import styles from "./ReferencePlayer.module.css";
 
 interface ReferencePlayerProps {
@@ -16,6 +17,8 @@ interface ReferencePlayerProps {
   outputDeviceName: string | null;
   selectedChannels: Set<number>;
   onToggleChannel: (channel: number) => void;
+  elapsedMs: number;
+  totalMs: number;
 }
 
 /**
@@ -34,6 +37,8 @@ export default function ReferencePlayer({
   outputDeviceName,
   selectedChannels,
   onToggleChannel,
+  elapsedMs,
+  totalMs,
 }: ReferencePlayerProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -87,6 +92,7 @@ export default function ReferencePlayer({
         </label>
         <span className={styles.outputHint}>{outputDeviceName ? `Output: ${outputDeviceName}` : "No output device — visual only"}</span>
       </div>
+      {playing && <PlaybackProgress elapsedMs={elapsedMs} totalMs={totalMs} />}
     </div>
   );
 }

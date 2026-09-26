@@ -1,8 +1,14 @@
+"use client";
+
 import { midiToName, NOTE_NAMES } from "@/lib/chords";
-import { TIMELINE_WIDTH as W, TIMELINE_LABEL_GUTTER as LABEL_GUTTER, TIMELINE_REFERENCE_FILL, TIMELINE_TAKE_FILL } from "@/lib/constants";
+import { TIMELINE_WIDTH, TIMELINE_LABEL_GUTTER as LABEL_GUTTER, TIMELINE_REFERENCE_FILL, TIMELINE_TAKE_FILL } from "@/lib/constants";
 import { normalizeEvents, type NormalizedEvents } from "@/lib/timelineUtils";
 import { buildEventStatusMaps, type ComparisonResult, type StepType } from "@/lib/comparison";
+import type { GridBeat } from "@/lib/midiParser";
 import type { NoteEvent } from "@/lib/types";
+import { useElementWidth } from "@/hooks/useElementWidth";
+import BarGrid from "./BarGrid";
+import Playhead from "./Playhead";
 import styles from "./CombinedTimeline.module.css";
 
 interface CombinedTimelineProps {
@@ -10,6 +16,9 @@ interface CombinedTimelineProps {
   takeEvents: NoteEvent[] | null;
   takeLabel?: string;
   comparison?: ComparisonResult | null;
+  beats?: GridBeat[];
+  playing?: boolean;
+  getPlayFraction?: () => number | null;
 }
 
 const NATURAL_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11]); // C D E F G A B — no sharps/flats
@@ -27,7 +36,12 @@ function isProblem(status: StepType | undefined) {
  * result is available, missed/wrong/partial/extra notes get a red outline (matched and
  * repeat-excluded notes don't, since those aren't errors).
  */
-export default function CombinedTimeline({ referenceEvents, takeEvents, takeLabel, comparison }: CombinedTimelineProps) {
+const RIGHT_PAD = 10;
+
+export default function CombinedTimeline({ referenceEvents, takeEvents, takeLabel, comparison, beats, playing, getPlayFraction }: CombinedTimelineProps) {
+  const { ref: widthRef, width: viewW } = useElementWidth(TIMELINE_WIDTH + LABEL_GUTTER);
+  const W = Math.max(300, viewW - LABEL_GUTTER - RIGHT_PAD); // plot width: everything to the right of the label gutter
+
   const hasReference = referenceEvents.length > 0;
   const hasTake = !!takeEvents && takeEvents.length > 0;
 
@@ -96,17 +110,20 @@ export default function CombinedTimeline({ referenceEvents, takeEvents, takeLabe
             <span className={styles.swatchTake} /> {takeLabel ?? "Take"}
           </span>
         )}
+        {hasReference && beats && beats.length > 0 && <span className={styles.legendItem}>Bar lines follow the reference</span>}
         {comparison && (
           <span className={styles.legendItem}>
             <span className={styles.swatchIssue} /> Missed / wrong / extra
           </span>
         )}
       </div>
-      <div className={styles.svgWrap}>
-        <svg viewBox={`0 0 ${LABEL_GUTTER + W} ${H}`} width="100%" height={H} style={{ display: "block" }}>
+      <div className={styles.svgWrap} ref={widthRef}>
+        <svg viewBox={`0 0 ${LABEL_GUTTER + W + RIGHT_PAD} ${H}`} width="100%" height={H} style={{ display: "block" }}>
           {pitchLabels}
+          <BarGrid beats={hasReference ? beats : undefined} reference={ref} height={H} plotWidth={W} />
           {hasReference && bars(ref, TIMELINE_REFERENCE_FILL, refStatus)}
           {hasTake && bars(take, TIMELINE_TAKE_FILL, takeStatus)}
+          {getPlayFraction && <Playhead active={!!playing} getFraction={getPlayFraction} plotWidth={W} height={H} />}
         </svg>
       </div>
     </div>

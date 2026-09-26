@@ -1,14 +1,24 @@
-import { TIMELINE_WIDTH as W, TIMELINE_LABEL_GUTTER as LABEL_GUTTER, TIMELINE_REFERENCE_FILL, TIMELINE_TAKE_FILL } from "@/lib/constants";
+"use client";
+
+import { TIMELINE_WIDTH, TIMELINE_LABEL_GUTTER as LABEL_GUTTER, TIMELINE_REFERENCE_FILL, TIMELINE_TAKE_FILL } from "@/lib/constants";
 import { normalizeEvents, type NormalizedEvents } from "@/lib/timelineUtils";
+import type { GridBeat } from "@/lib/midiParser";
 import type { NoteEvent } from "@/lib/types";
+import { useElementWidth } from "@/hooks/useElementWidth";
+import BarGrid from "./BarGrid";
+import Playhead from "./Playhead";
 import styles from "./VelocityChart.module.css";
 
 interface VelocityChartProps {
   referenceEvents: NoteEvent[];
   takeEvents: NoteEvent[] | null;
+  beats?: GridBeat[];
+  playing?: boolean;
+  getPlayFraction?: () => number | null;
 }
 
 const H = 110;
+const RIGHT_PAD = 10;
 const GRID_VALUES = [0, 32, 64, 96, 127];
 
 /**
@@ -16,7 +26,10 @@ const GRID_VALUES = [0, 32, 64, 96, 127];
  * per-dataset time normalization as CombinedTimeline so a spike here lines up with the
  * corresponding note directly above it in the pitch timeline.
  */
-export default function VelocityChart({ referenceEvents, takeEvents }: VelocityChartProps) {
+export default function VelocityChart({ referenceEvents, takeEvents, beats, playing, getPlayFraction }: VelocityChartProps) {
+  const { ref: widthRef, width: viewW } = useElementWidth(TIMELINE_WIDTH + LABEL_GUTTER);
+  const W = Math.max(300, viewW - LABEL_GUTTER - RIGHT_PAD); // plot width: everything to the right of the label gutter
+
   const hasReference = referenceEvents.length > 0;
   const hasTake = !!takeEvents && takeEvents.length > 0;
 
@@ -49,11 +62,13 @@ export default function VelocityChart({ referenceEvents, takeEvents }: VelocityC
   return (
     <div className={styles.wrap}>
       <div className={styles.title}>Velocity</div>
-      <div className={styles.svgWrap}>
-        <svg viewBox={`0 0 ${LABEL_GUTTER + W} ${H}`} width="100%" height={H} style={{ display: "block" }}>
+      <div className={styles.svgWrap} ref={widthRef}>
+        <svg viewBox={`0 0 ${LABEL_GUTTER + W + RIGHT_PAD} ${H}`} width="100%" height={H} style={{ display: "block" }}>
           {gridLines}
+          <BarGrid beats={hasReference ? beats : undefined} reference={ref} height={H} plotWidth={W} showLabels={false} />
           {hasReference && bars(ref, TIMELINE_REFERENCE_FILL)}
           {hasTake && bars(take, TIMELINE_TAKE_FILL)}
+          {getPlayFraction && <Playhead active={!!playing} getFraction={getPlayFraction} plotWidth={W} height={H} />}
         </svg>
       </div>
     </div>

@@ -45,7 +45,10 @@ export function detectChord(noteNumbers: number[]): string {
     const diff = (pitchClasses[1] - pitchClasses[0] + 12) % 12;
     return `${NOTE_NAMES[pitchClasses[0]]}–${NOTE_NAMES[pitchClasses[1]]} (${INTERVAL_NAMES[diff] || diff})`;
   }
-  for (const root of pitchClasses) {
+  // Try the lowest played note as the root first, so ambiguous spellings (Csus2 vs Gsus4) follow the bass note.
+  const bassPitchClass = Math.min(...noteNumbers) % 12;
+  const rootsToTry = [bassPitchClass, ...pitchClasses.filter((pc) => pc !== bassPitchClass)];
+  for (const root of rootsToTry) {
     const fromRoot = pitchClasses.map((pc) => (pc - root + 12) % 12).sort((a, b) => a - b);
     const template = CHORD_TEMPLATES.find((t) => t.intervals.length === fromRoot.length && t.intervals.every((iv, i) => iv === fromRoot[i]));
     if (template) return NOTE_NAMES[root] + template.suffix;

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { midiToName } from "@/lib/chords";
-import { RECORD_TOGGLE_NOTE } from "@/lib/constants";
+import { PLAY_REFERENCE_NOTE, RECORD_TOGGLE_NOTE } from "@/lib/constants";
 import styles from "./Keyboard.module.css";
 
 const LOW = 21; // A0
@@ -15,11 +15,11 @@ const BASE_BLACK_H = 116;
 const BASE_DOT_SIZE = 8;
 
 const KEYS = (() => {
-  const list: { note: number; isBlack: boolean; isC: boolean; isRecordToggle: boolean }[] = [];
+  const list: { note: number; isBlack: boolean; isC: boolean; isRecordToggle: boolean; isPlayReference: boolean }[] = [];
   for (let n = LOW; n <= HIGH; n++) {
     const pc = n % 12;
     const isBlack = BLACK_PITCH_CLASSES.has(pc);
-    list.push({ note: n, isBlack, isC: !isBlack && pc === 0, isRecordToggle: n === RECORD_TOGGLE_NOTE });
+    list.push({ note: n, isBlack, isC: !isBlack && pc === 0, isRecordToggle: n === RECORD_TOGGLE_NOTE, isPlayReference: n === PLAY_REFERENCE_NOTE });
   }
   return list;
 })();
@@ -127,6 +127,15 @@ export default function Keyboard({ activeNotes, sustainedNotes, onPress, onRelea
                 >
                   {midiToName(k.note)}
                 </span>
+              )}
+              {k.isPlayReference && (
+                <span
+                  className={styles.playDot}
+                  title="Play/stop reference"
+                  ref={(el) => {
+                    dotRefs.current[k.note] = el;
+                  }}
+                />
               )}
               {k.isRecordToggle && (
                 <span

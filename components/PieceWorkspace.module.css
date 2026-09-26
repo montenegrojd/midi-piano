@@ -28,9 +28,52 @@
   padding-bottom: 16px;
 }
 
+.pieceActions {
+  margin-top: 10px;
+}
+
 .main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tabBar {
+  width: 100%;
+  max-width: 2400px;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+
+.tabButton {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 4px;
+  margin-right: 22px;
+  cursor: pointer;
+}
+
+.tabButton:hover {
+  color: var(--ivory);
+}
+
+.tabActive {
+  color: var(--brass-glow);
+  border-bottom-color: var(--brass-glow);
+}
+
+.tabPanel {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -84,34 +127,33 @@
 
 .chordName {
   width: 100%;
-  max-width: 920px;
   text-align: center;
   font-family: var(--serif);
   font-style: italic;
-  font-size: 22px;
+  font-size: clamp(64px, 7.5vw, 128px);
+  line-height: 1.1;
   color: var(--brass-glow);
-  text-shadow: 0 0 16px rgba(255, 182, 72, 0.3);
-  min-height: 30px;
+  text-shadow: 0 0 28px rgba(255, 182, 72, 0.35);
+  min-height: 1.1em;
 }
 
 .readout {
   width: 100%;
-  max-width: 920px;
-  min-height: 60px;
+  min-height: clamp(110px, 12vw, 190px);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 18px;
-  margin-bottom: 12px;
+  gap: 0.3em 44px;
+  margin-bottom: 20px;
 }
 
 .noteTag {
   font-family: var(--serif);
   font-style: italic;
-  font-size: 28px;
+  font-size: clamp(80px, 9vw, 160px);
   color: var(--brass-glow);
-  text-shadow: 0 0 22px rgba(255, 182, 72, 0.35);
+  text-shadow: 0 0 36px rgba(255, 182, 72, 0.4);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -161,6 +203,19 @@
 .pedalStatus.on .pedalDot {
   background: var(--brass-glow);
   box-shadow: 0 0 6px var(--brass-glow);
+}
+
+.pianoRow {
+  width: 100%;
+  max-width: 2400px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.keyboardCol {
+  flex: 1 1 0%;
+  min-width: 0;
 }
 
 .recBar {

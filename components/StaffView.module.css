@@ -1,0 +1,9 @@
+.wrap {
+  width: 100%;
+  max-width: 540px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  background: #14100d;
+  border: 1px solid var(--line);
+  padding: 6px 4px;
+}

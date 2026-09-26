@@ -10,21 +10,19 @@ import { computeStats } from "@/lib/stats";
 import { midiToName } from "@/lib/chords";
 import { channelInstrumentName } from "@/lib/gmInstruments";
 import { compareTakeToReference } from "@/lib/comparison";
-import type { ParsedMidi } from "@/lib/midiParser";
+import { formatTimer } from "@/lib/format";
+import type { GridBeat, ParsedMidi } from "@/lib/midiParser";
 import type { NoteEvent, Piece, Take } from "@/lib/types";
 import Keyboard from "./Keyboard";
+import StaffView from "./StaffView";
 import TakeCard from "./TakeCard";
 import ReferencePlayer from "./ReferencePlayer";
 import CombinedTimeline from "./CombinedTimeline";
 import VelocityChart from "./VelocityChart";
 import TimingDeviationChart from "./TimingDeviationChart";
 import ComparisonReport from "./ComparisonReport";
+import DeletePieceButton from "./DeletePieceButton";
 import styles from "./PieceWorkspace.module.css";
-
-function formatTimer(ms: number) {
-  const secs = Math.floor(ms / 1000);
-  return `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
-}
 
 function defaultPianoChannels(channels: ParsedMidi): Set<number> {
   const initial = new Set<number>();
@@ -35,7 +33,7 @@ function defaultPianoChannels(channels: ParsedMidi): Set<number> {
   return initial;
 }
 
-export default function PieceWorkspace({ piece, takes, referenceChannels }: { piece: Piece; takes: Take[]; referenceChannels: ParsedMidi }) {
+export default function PieceWorkspace({ piece, takes, referenceChannels, beats }: { piece: Piece; takes: Take[]; referenceChannels: ParsedMidi; beats: GridBeat[] }) {
   const router = useRouter();
   const recorder = usePianoRecorder();
   const output = useMidiOutput();
@@ -47,6 +45,7 @@ export default function PieceWorkspace({ piece, takes, referenceChannels }: { pi
   const [deletingTakeId, setDeletingTakeId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [selectedTakeId, setSelectedTakeId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"play" | "analysis">("play");
   const [selectedChannels, setSelectedChannels] = useState<Set<number>>(() => defaultPianoChannels(referenceChannels));
 
   function toggleChannel(channel: number) {
@@ -118,11 +117,18 @@ export default function PieceWorkspace({ piece, takes, referenceChannels }: { pi
     }
   }
 
+  function handleTogglePlayReference() {
+    if (recorder.recording) return; // don't start playback over a live take
+    if (playback.playingId === "reference") playback.stop();
+    else playback.play(selectedReferenceEvents, "reference");
+  }
+
   const midi = useMidiInput({
     onNoteOn: recorder.noteOn,
     onNoteOff: recorder.noteOff,
     onSustain: recorder.setSustain,
     onToggleRecording: handleToggleRecording,
+    onTogglePlayReference: handleTogglePlayReference,
   });
 
   async function handleDeleteTake(takeId: string) {
@@ -144,8 +150,17 @@ export default function PieceWorkspace({ piece, takes, referenceChannels }: { pi
   }
 
   function handleSelectTake(takeId: string) {
-    setSelectedTakeId((prev) => (prev === takeId ? null : takeId));
+    setSelectedTakeId((prev) => {
+      const next = prev === takeId ? null : takeId;
+      if (next !== null) setActiveTab("analysis");
+      return next;
+    });
   }
+
+  // Which timeline the playhead runs on: the reference's, or the selected take's (a take playing
+  // that isn't the one being analysed has nothing to show on these charts).
+  const playingAxis: "reference" | "take" | null =
+    playback.playingId === "reference" ? "reference" : selectedTake && playback.playingId === selectedTake.id ? "take" : null;
 
   const audibleNotes = [...new Set([...recorder.activeNotes, ...recorder.sustainedNotes])].sort((a, b) => a - b);
   const referenceDurationSecs = (piece.referenceInfo.durationMs / 1000).toFixed(1);
@@ -158,6 +173,9 @@ export default function PieceWorkspace({ piece, takes, referenceChannels }: { pi
             ← All pieces
           </a>
           <h1 className={styles.title}>{piece.name}</h1>
+          <div className={styles.pieceActions}>
+            <DeletePieceButton pieceId={piece.id} takeCount={takes.length} />
+          </div>
         </div>
 
         <div className={styles.refInfoBar}>
@@ -181,6 +199,8 @@ export default function PieceWorkspace({ piece, takes, referenceChannels }: { pi
           outputDeviceName={output.deviceName}
           selectedChannels={selectedChannels}
           onToggleChannel={toggleChannel}
+          elapsedMs={playback.elapsedMs}
+          totalMs={playback.totalMs}
         />
 
         <div className={styles.sidebarTitle}>Takes ({takes.length})</div>
@@ -204,6 +224,8 @@ export default function PieceWorkspace({ piece, takes, referenceChannels }: { pi
                   isPlaying={playback.playingId === take.id}
                   playDisabled={recorder.recording}
                   accuracyPct={takeAccuracies.get(take.id)}
+                  elapsedMs={playback.elapsedMs}
+                  totalMs={playback.totalMs}
                 />
               ))}
           </div>
@@ -211,49 +233,72 @@ export default function PieceWorkspace({ piece, takes, referenceChannels }: { pi
       </div>
 
       <div className={styles.main}>
-        <div className={styles.chordName}>{recorder.chordName}</div>
-
-        <div className={styles.readout}>
-          {audibleNotes.length === 0 ? (
-            <span className={styles.placeholder}>Play a note — click a key on the keyboard, or connect a MIDI device</span>
-          ) : (
-            audibleNotes.map((n) => (
-              <span className={styles.noteTag} key={n}>
-                {midiToName(n)}
-              </span>
-            ))
-          )}
+        <div className={styles.tabBar}>
+          <button className={`${styles.tabButton} ${activeTab === "play" ? styles.tabActive : ""}`} onClick={() => setActiveTab("play")}>
+            Play &amp; capture
+          </button>
+          <button className={`${styles.tabButton} ${activeTab === "analysis" ? styles.tabActive : ""}`} onClick={() => setActiveTab("analysis")}>
+            Analysis
+          </button>
         </div>
 
-        <Keyboard activeNotes={recorder.activeNotes} sustainedNotes={recorder.sustainedNotes} onPress={midi.pressVirtualKey} onRelease={midi.releaseVirtualKey} />
+        {activeTab === "play" ? (
+          <div className={styles.tabPanel}>
+            <div className={styles.pianoRow}>
+              <div className={styles.keyboardCol}>
+              <div className={styles.chordName}>{recorder.chordName}</div>
 
-        <div className={`${styles.pedalStatus} ${recorder.sustainOn ? styles.on : ""}`}>
-          <span className={styles.pedalDot} />
-          Sustain
-        </div>
+              <div className={styles.readout}>
+                {audibleNotes.length === 0 ? (
+                  <span className={styles.placeholder}>Play a note — click a key on the keyboard, or connect a MIDI device</span>
+                ) : (
+                  audibleNotes.map((n) => (
+                    <span className={styles.noteTag} key={n}>
+                      {midiToName(n)}
+                    </span>
+                  ))
+                )}
+              </div>
 
-        <CombinedTimeline
-          referenceEvents={selectedReferenceEvents}
-          takeEvents={selectedTake?.events ?? null}
-          takeLabel={selectedTake ? new Date(selectedTake.recordedAt).toLocaleString() : undefined}
-          comparison={comparison}
-        />
-        <VelocityChart referenceEvents={selectedReferenceEvents} takeEvents={selectedTake?.events ?? null} />
-        <TimingDeviationChart referenceEvents={selectedReferenceEvents} takeEvents={selectedTake?.events ?? null} comparison={comparison} />
-        <ComparisonReport result={comparison} />
+                <Keyboard activeNotes={recorder.activeNotes} sustainedNotes={recorder.sustainedNotes} onPress={midi.pressVirtualKey} onRelease={midi.releaseVirtualKey} />
+                <div className={`${styles.pedalStatus} ${recorder.sustainOn ? styles.on : ""}`}>
+                  <span className={styles.pedalDot} />
+                  Sustain
+                </div>
+              </div>
 
-        {recorder.recording && (
-          <div className={styles.recBar}>
-            <span className={styles.recTimer}>{formatTimer(recorder.elapsedMs)}</span>
+              <StaffView activeNotes={audibleNotes} />
+            </div>
+
+            {recorder.recording && (
+              <div className={styles.recBar}>
+                <span className={styles.recTimer}>{formatTimer(recorder.elapsedMs)}</span>
+              </div>
+            )}
+
+            {saveError && (
+              <div className={styles.saveErrorBar}>
+                <span>{saveError}</span>
+                <button onClick={() => pendingTake && saveTake(pendingTake)} disabled={saving}>
+                  {saving ? "Retrying…" : "Retry"}
+                </button>
+              </div>
+            )}
           </div>
-        )}
-
-        {saveError && (
-          <div className={styles.saveErrorBar}>
-            <span>{saveError}</span>
-            <button onClick={() => pendingTake && saveTake(pendingTake)} disabled={saving}>
-              {saving ? "Retrying…" : "Retry"}
-            </button>
+        ) : (
+          <div className={styles.tabPanel}>
+            <CombinedTimeline
+              referenceEvents={selectedReferenceEvents}
+              takeEvents={selectedTake?.events ?? null}
+              takeLabel={selectedTake ? new Date(selectedTake.recordedAt).toLocaleString() : undefined}
+              comparison={comparison}
+              beats={beats}
+              playing={playingAxis !== null}
+              getPlayFraction={playback.getFraction}
+            />
+            <VelocityChart referenceEvents={selectedReferenceEvents} takeEvents={selectedTake?.events ?? null} beats={beats} playing={playingAxis !== null} getPlayFraction={playback.getFraction} />
+            <TimingDeviationChart referenceEvents={selectedReferenceEvents} takeEvents={selectedTake?.events ?? null} comparison={comparison} beats={beats} playing={playingAxis !== null} playingAxis={playingAxis ?? undefined} getPlayFraction={playback.getFraction} />
+            <ComparisonReport result={comparison} />
           </div>
         )}
       </div>

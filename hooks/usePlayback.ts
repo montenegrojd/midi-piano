@@ -19,6 +19,8 @@ export function usePlayback({ noteOn, noteOff, send }: UsePlaybackOptions) {
   const [playing, setPlaying] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [totalMs, setTotalMs] = useState(0);
 
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const activeNotesRef = useRef<Set<number>>(new Set());
@@ -26,10 +28,15 @@ export function usePlayback({ noteOn, noteOff, send }: UsePlaybackOptions) {
   speedRef.current = speed;
   const cbRef = useRef({ noteOn, noteOff, send });
   cbRef.current = { noteOn, noteOff, send };
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef<{ startedAt: number; totalMs: number } | null>(null); // read every frame by the chart playheads
 
   const stop = useCallback(() => {
     timeoutsRef.current.forEach(clearTimeout);
     timeoutsRef.current = [];
+    if (tickRef.current) clearInterval(tickRef.current);
+    tickRef.current = null;
+    progressRef.current = null;
     activeNotesRef.current.forEach((n) => {
       cbRef.current.send([0x80 | PLAYBACK_CHANNEL, n, 0]);
       cbRef.current.noteOff(n);
@@ -37,6 +44,8 @@ export function usePlayback({ noteOn, noteOff, send }: UsePlaybackOptions) {
     activeNotesRef.current.clear();
     setPlaying(false);
     setPlayingId(null);
+    setElapsedMs(0);
+    setTotalMs(0);
   }, []);
 
   const play = useCallback(
@@ -69,17 +78,33 @@ export function usePlayback({ noteOn, noteOff, send }: UsePlaybackOptions) {
       timeouts.push(
         setTimeout(() => {
           timeoutsRef.current = [];
+          if (tickRef.current) clearInterval(tickRef.current);
+          tickRef.current = null;
+          progressRef.current = null;
           setPlaying(false);
           setPlayingId(null);
+          setElapsedMs(0);
+          setTotalMs(0);
         }, totalTime + 60)
       );
 
       timeoutsRef.current = timeouts;
       setPlaying(true);
       setPlayingId(id);
+      setTotalMs(totalTime);
+      setElapsedMs(0);
+      const startedAt = performance.now();
+      progressRef.current = { startedAt, totalMs: totalTime };
+      tickRef.current = setInterval(() => setElapsedMs(Math.min(totalTime, performance.now() - startedAt)), 100);
     },
     [stop]
   );
 
-  return { playing, playingId, speed, setSpeed, play, stop };
+  const getFraction = useCallback((): number | null => {
+    const p = progressRef.current;
+    if (!p || p.totalMs <= 0) return null;
+    return Math.min(1, (performance.now() - p.startedAt) / p.totalMs);
+  }, []);
+
+  return { playing, playingId, speed, setSpeed, play, stop, elapsedMs, totalMs, getFraction };
 }

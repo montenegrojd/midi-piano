@@ -2,6 +2,7 @@
 
 import { useState, type MouseEvent } from "react";
 import type { Take } from "@/lib/types";
+import PlaybackProgress from "./PlaybackProgress";
 import styles from "./TakeCard.module.css";
 
 interface TakeCardProps {
@@ -15,9 +16,24 @@ interface TakeCardProps {
   isPlaying?: boolean;
   playDisabled?: boolean;
   accuracyPct?: number;
+  elapsedMs: number;
+  totalMs: number;
 }
 
-export default function TakeCard({ take, onDelete, deleting, selected, onSelect, onPlay, onStopPlayback, isPlaying, playDisabled, accuracyPct }: TakeCardProps) {
+export default function TakeCard({
+  take,
+  onDelete,
+  deleting,
+  selected,
+  onSelect,
+  onPlay,
+  onStopPlayback,
+  isPlaying,
+  playDisabled,
+  accuracyPct,
+  elapsedMs,
+  totalMs,
+}: TakeCardProps) {
   const { stats } = take;
   const [confirming, setConfirming] = useState(false);
 
@@ -54,6 +70,7 @@ export default function TakeCard({ take, onDelete, deleting, selected, onSelect,
           )}
         </div>
       </div>
+      {isPlaying && <PlaybackProgress elapsedMs={elapsedMs} totalMs={totalMs} />}
       <div className={styles.statsGrid}>
         <div className={styles.statCell}>
           <div className={styles.val}>{stats.noteCount}</div>

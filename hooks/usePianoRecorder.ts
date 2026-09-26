@@ -41,6 +41,10 @@ export function usePianoRecorder() {
 
   const noteOn = useCallback(
     (note: number, velocity: number) => {
+      // A real key can't send note-on twice without releasing first, so a note-on for one that's
+      // already held is a duplicate/echoed message (e.g. from the MIDI layer) — drop it rather
+      // than recording a phantom second press.
+      if (activeNotesRef.current.has(note)) return;
       activeNotesRef.current = new Set(activeNotesRef.current).add(note);
       setActiveNotes(activeNotesRef.current);
       if (sustainedNotesRef.current.has(note)) {
