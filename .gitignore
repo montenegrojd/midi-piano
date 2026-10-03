@@ -45,6 +45,7 @@ next-env.d.ts
 
 #recorded practice data (local only)
 /data/pieces/
+/data/drills/
 
 #poc/handoff
 midi-keyboard-poc.html

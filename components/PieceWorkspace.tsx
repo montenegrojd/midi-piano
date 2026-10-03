@@ -9,7 +9,7 @@ import { usePlayback } from "@/hooks/usePlayback";
 import { computeStats } from "@/lib/stats";
 import { midiToName } from "@/lib/chords";
 import { channelInstrumentName } from "@/lib/gmInstruments";
-import { compareTakeToReference } from "@/lib/comparison";
+import { compareTakeToReference, computeTimingDeviations } from "@/lib/comparison";
 import { formatTimer } from "@/lib/format";
 import type { GridBeat, ParsedMidi } from "@/lib/midiParser";
 import type { NoteEvent, Piece, Take } from "@/lib/types";
@@ -21,6 +21,8 @@ import CombinedTimeline from "./CombinedTimeline";
 import VelocityChart from "./VelocityChart";
 import TimingDeviationChart from "./TimingDeviationChart";
 import ComparisonReport from "./ComparisonReport";
+import TakeStatsPanel from "./TakeStatsPanel";
+import { computeTakeInsights } from "@/lib/takeInsights";
 import DeletePieceButton from "./DeletePieceButton";
 import styles from "./PieceWorkspace.module.css";
 
@@ -70,12 +72,23 @@ export default function PieceWorkspace({ piece, takes, referenceChannels, beats 
     return compareTakeToReference(selectedReferenceEvents, selectedTake.events);
   }, [selectedReferenceEvents, selectedTake]);
 
-  const takeAccuracies = useMemo(() => {
-    const map = new Map<string, number>();
+  const insights = useMemo(() => {
+    if (!selectedTake || !comparison) return null;
+    return computeTakeInsights(comparison, selectedReferenceEvents, selectedTake.events, beats);
+  }, [comparison, selectedReferenceEvents, selectedTake, beats]);
+
+  const takeMetrics = useMemo(() => {
+    const map = new Map<string, { accuracyPct: number; driftPct: number | null; netDriftPct: number | null }>();
     if (selectedReferenceEvents.length === 0) return map;
     for (const take of takes) {
       if (take.events.length === 0) continue;
-      map.set(take.id, compareTakeToReference(selectedReferenceEvents, take.events).accuracyPct);
+      const result = compareTakeToReference(selectedReferenceEvents, take.events);
+      const points = computeTimingDeviations(result.steps, selectedReferenceEvents, take.events);
+      // Average size of the bars in the Timing drift chart, as a % of the piece (sign ignored).
+      const driftPct = points.length ? (points.reduce((a, p) => a + Math.abs(p.deviation), 0) / points.length) * 100 : null;
+      // Signed version of the same bars: positive = behind the reference's pace (dragging), negative = ahead (rushing).
+      const netDriftPct = points.length ? (points.reduce((a, p) => a + p.deviation, 0) / points.length) * 100 : null;
+      map.set(take.id, { accuracyPct: result.accuracyPct, driftPct, netDriftPct });
     }
     return map;
   }, [selectedReferenceEvents, takes]);
@@ -223,7 +236,8 @@ export default function PieceWorkspace({ piece, takes, referenceChannels, beats 
                   onStopPlayback={playback.stop}
                   isPlaying={playback.playingId === take.id}
                   playDisabled={recorder.recording}
-                  accuracyPct={takeAccuracies.get(take.id)}
+                  accuracyPct={takeMetrics.get(take.id)?.accuracyPct}
+                  driftPct={takeMetrics.get(take.id)?.driftPct ?? undefined}
                   elapsedMs={playback.elapsedMs}
                   totalMs={playback.totalMs}
                 />
@@ -287,6 +301,7 @@ export default function PieceWorkspace({ piece, takes, referenceChannels, beats 
           </div>
         ) : (
           <div className={styles.tabPanel}>
+            {selectedTake && <TakeStatsPanel take={selectedTake} insights={insights} {...takeMetrics.get(selectedTake.id)} driftPct={takeMetrics.get(selectedTake.id)?.driftPct ?? undefined} netDriftPct={takeMetrics.get(selectedTake.id)?.netDriftPct ?? undefined} />}
             <CombinedTimeline
               referenceEvents={selectedReferenceEvents}
               takeEvents={selectedTake?.events ?? null}

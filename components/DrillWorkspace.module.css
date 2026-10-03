@@ -1,0 +1,37 @@
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.startBtn {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 12px 22px;
+  border-radius: 3px;
+  cursor: pointer;
+  background: var(--brass);
+  color: #1a1204;
+  border: 1px solid var(--brass);
+  font-weight: bold;
+}
+
+.phaseLabel {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--brass-glow);
+}
+
+.cancelBtn {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  background: none;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}

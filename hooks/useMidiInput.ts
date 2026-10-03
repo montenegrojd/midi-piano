@@ -7,6 +7,9 @@ interface UseMidiInputOptions {
   onSustain: (down: boolean) => void;
   onToggleRecording: () => void;
   onTogglePlayReference: () => void;
+  /** Set false on pages where every key is meaningful input (e.g. a rhythm drill, where any key is
+   * a valid tap) so A0/B0 pass through as real notes instead of being swallowed as controls. Default true. */
+  interceptControlKeys?: boolean;
 }
 
 /**
@@ -14,22 +17,24 @@ interface UseMidiInputOptions {
  * toggle, B1 as a hands-free play/stop for the reference) into a piano note/sustain/recording controller — ported from the POC's Web MIDI section
  * (midi-keyboard-poc.html). Sustain only comes from a real pedal (MIDI CC 64) now.
  */
-export function useMidiInput({ onNoteOn, onNoteOff, onSustain, onToggleRecording, onTogglePlayReference }: UseMidiInputOptions) {
+export function useMidiInput({ onNoteOn, onNoteOff, onSustain, onToggleRecording, onTogglePlayReference, interceptControlKeys = true }: UseMidiInputOptions) {
   const [deviceName, setDeviceName] = useState<string | null>(null);
   const [midiSupported, setMidiSupported] = useState(true);
 
   // Always-fresh callbacks for the event handler below, which is attached once outside React's render cycle.
-  const cbRef = useRef({ onNoteOn, onNoteOff, onSustain, onToggleRecording, onTogglePlayReference });
-  cbRef.current = { onNoteOn, onNoteOff, onSustain, onToggleRecording, onTogglePlayReference };
+  const cbRef = useRef({ onNoteOn, onNoteOff, onSustain, onToggleRecording, onTogglePlayReference, interceptControlKeys });
+  cbRef.current = { onNoteOn, onNoteOff, onSustain, onToggleRecording, onTogglePlayReference, interceptControlKeys };
 
-  // A0 and B1 are control keys: they trigger an action instead of being played/recorded as notes.
+  // A0 and B1 are control keys: they trigger an action instead of being played/recorded as notes —
+  // unless interceptControlKeys is off, in which case every key is real input.
   const tryControlKey = (note: number) => {
+    if (!cbRef.current.interceptControlKeys) return false;
     if (note === RECORD_TOGGLE_NOTE) cbRef.current.onToggleRecording();
     else if (note === PLAY_REFERENCE_NOTE) cbRef.current.onTogglePlayReference();
     else return false;
     return true;
   };
-  const isControlKey = (note: number) => note === RECORD_TOGGLE_NOTE || note === PLAY_REFERENCE_NOTE;
+  const isControlKey = (note: number) => cbRef.current.interceptControlKeys && (note === RECORD_TOGGLE_NOTE || note === PLAY_REFERENCE_NOTE);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.requestMIDIAccess) {

@@ -47,3 +47,29 @@ export interface PieceSummary {
   referenceMidiFilename: string;
   takeCount: number;
 }
+
+export type DrillSubdivision = "quarter" | "eighth" | "triplet" | "sixteenth";
+
+export interface DrillPattern {
+  timeSignature: { numerator: number; denominator: number };
+  bpm: number;
+  bars: number;
+  subdivision: DrillSubdivision;
+}
+
+export interface Drill {
+  id: string;
+  name: string;
+  createdAt: number;
+  pattern: DrillPattern;
+}
+
+export interface DrillSummary {
+  id: string;
+  name: string;
+  createdAt: number;
+  bpm: number;
+  bars: number;
+  subdivision: DrillSubdivision;
+  takeCount: number;
+}

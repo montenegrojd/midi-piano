@@ -16,6 +16,7 @@ interface TakeCardProps {
   isPlaying?: boolean;
   playDisabled?: boolean;
   accuracyPct?: number;
+  driftPct?: number; // average timing drift, % of the piece (drills: % of one tap interval)
   elapsedMs: number;
   totalMs: number;
 }
@@ -31,10 +32,10 @@ export default function TakeCard({
   isPlaying,
   playDisabled,
   accuracyPct,
+  driftPct,
   elapsedMs,
   totalMs,
 }: TakeCardProps) {
-  const { stats } = take;
   const [confirming, setConfirming] = useState(false);
 
   function stopBubble(e: MouseEvent) {
@@ -73,32 +74,12 @@ export default function TakeCard({
       {isPlaying && <PlaybackProgress elapsedMs={elapsedMs} totalMs={totalMs} />}
       <div className={styles.statsGrid}>
         <div className={styles.statCell}>
-          <div className={styles.val}>{stats.noteCount}</div>
-          <div className={styles.lbl}>Notes played</div>
-        </div>
-        <div className={styles.statCell}>
           <div className={styles.val}>{accuracyPct !== undefined ? `${accuracyPct}%` : "—"}</div>
           <div className={styles.lbl}>Accuracy</div>
         </div>
         <div className={styles.statCell}>
-          <div className={styles.val}>{stats.totalDuration}s</div>
-          <div className={styles.lbl}>Take length</div>
-        </div>
-        <div className={styles.statCell}>
-          <div className={styles.val}>~{stats.approxBPM}</div>
-          <div className={styles.lbl}>Notes / min</div>
-        </div>
-        <div className={styles.statCell}>
-          <div className={styles.val}>{stats.consistencyPct}%</div>
-          <div className={styles.lbl}>Timing consistency</div>
-        </div>
-        <div className={styles.statCell}>
-          <div className={styles.val}>{stats.avgVelocity}</div>
-          <div className={styles.lbl}>Avg velocity (0–127)</div>
-        </div>
-        <div className={styles.statCell}>
-          <div className={styles.val}>{stats.avgDuration}ms</div>
-          <div className={styles.lbl}>Avg note hold</div>
+          <div className={styles.val}>{driftPct !== undefined ? `${driftPct.toFixed(1)}%` : "—"}</div>
+          <div className={styles.lbl}>Avg timing drift</div>
         </div>
       </div>
     </div>
